@@ -33,19 +33,6 @@
 
 import utime
 import machine
-import enum
-
-def reg_write(i2c, addr, reg, data):
-    """
-    Write bytes to the specified register.
-    """
-
-    # Construct message
-    msg = bytearray()
-    msg.append(data)
-
-    # Write out message to register
-    i2c.writeto_mem(addr, reg, msg)
 
 class Color:
 
@@ -77,13 +64,13 @@ class ColorSensorV3:
     writeBuffer = bytearray([0])
     readBuffer = bytearray([0, 0, 0])
 
-    def __init__(self):
+    def __init__(self, port):
         """
         Constructs a ColorSensor.
 
         port  The I2C port the color sensor is attached to
         """
-        self.i2c = machine.I2C(0, scl=machine.Pin(17), sda=machine.Pin(16))
+        self.i2c = machine.I2C(port)
 
         if not self._checkDeviceID():
             return
@@ -93,7 +80,7 @@ class ColorSensorV3:
         # Clear the reset flag
         self.hasReset()
 
-    class Register(enum.IntEnum):
+    class Register():
         kMainCtrl = 0x00
         kProximitySensorLED = 0x01
         kProximitySensorPulses = 0x02
@@ -108,20 +95,20 @@ class ColorSensorV3:
         kDataBlue = 0x10
         kDataRed = 0x13
 
-    class MainControl(enum.IntFlag):
+    class MainControl():
         kRGBMode = 0x04  # If bit is set to 1, color channels are activated
         kLightSensorEnable = 0x02  # Enable light sensor
         kProximitySensorEnable = 0x01  # Proximity sensor active
         OFF = 0x00  # Nothing on
 
-    class GainFactor(enum.IntEnum):
+    class GainFactor():
         kGain1x = 0x00
         kGain3x = 0x01
         kGain6x = 0x02
         kGain9x = 0x03
         kGain18x = 0x04
 
-    class LEDCurrent(enum.IntEnum):
+    class LEDCurrent():
         kPulse2mA = 0x00
         kPulse5mA = 0x01
         kPulse10mA = 0x02
@@ -131,20 +118,20 @@ class ColorSensorV3:
         kPulse100mA = 0x06  # default value
         kPulse125mA = 0x07
 
-    class LEDPulseFrequency(enum.IntEnum):
+    class LEDPulseFrequency():
         kFreq60kHz = 0x18  # default value
         kFreq70kHz = 0x40
         kFreq80kHz = 0x28
         kFreq90kHz = 0x30
         kFreq100kHz = 0x38
 
-    class ProximitySensorResolution(enum.IntEnum):
+    class ProximitySensorResolution():
         kProxRes8bit = 0x00
         kProxRes9bit = 0x08
         kProxRes10bit = 0x10
         kProxRes11bit = 0x18
 
-    class ProximitySensorMeasurementRate(enum.IntEnum):
+    class ProximitySensorMeasurementRate():
         kProxRate6ms = 0x01
         kProxRate12ms = 0x02
         kProxRate25ms = 0x03
@@ -153,7 +140,7 @@ class ColorSensorV3:
         kProxRate200ms = 0x06
         kProxRate400ms = 0x07
 
-    class ColorSensorResolution(enum.IntEnum):
+    class ColorSensorResolution():
         kColorSensorRes20bit = 0x00
         kColorSensorRes19bit = 0x10
         kColorSensorRes18bit = 0x20
@@ -161,7 +148,7 @@ class ColorSensorV3:
         kColorSensorRes16bit = 0x40
         kColorSensorRes13bit = 0x50
 
-    class ColorSensorMeasurementRate(enum.IntEnum):
+    class ColorSensorMeasurementRate():
         kColorRate25ms = 0
         kColorRate50ms = 1
         kColorRate100ms = 2
@@ -170,8 +157,8 @@ class ColorSensorV3:
         kColorRate1000ms = 5
         kColorRate2000ms = 7
 
-    def configureProximitySensorLED(self, freq: LEDPulseFrequency,
-                                    curr: LEDCurrent, pulses: int):
+    def configureProximitySensorLED(self, freq,
+                                    curr, pulses: int):
         """
         Configure the the IR LED used by the proximity sensor.
 
@@ -189,8 +176,8 @@ class ColorSensorV3:
         self._write8(self.Register.kProximitySensorLED, freq | curr)
         self._write8(self.Register.kProximitySensorPulses, pulses)
 
-    def configureProximitySensor(self, res: ProximitySensorResolution,
-                                 rate: ProximitySensorMeasurementRate):
+    def configureProximitySensor(self, res,
+                                 rate):
         """
         Configure the proximity sensor.
 
@@ -204,9 +191,9 @@ class ColorSensorV3:
         """
         self._write8(self.Register.kProximitySensorRate, res | rate)
 
-    def configureColorSensor(self, res: ColorSensorResolution,
-                             rate: ColorSensorMeasurementRate,
-                             gain: GainFactor):
+    def configureColorSensor(self, res,
+                             rate,
+                             gain):
         """
         Configure the color sensor.
 
@@ -366,16 +353,48 @@ class ColorSensorV3:
         self.writeBuffer[0] = data
         self.i2c.writeto_mem(self.kAddress, reg, self.writeBuffer)
 
+uart = machine.UART(0)
+# colorSensor0 = ColorSensorV3(0)
 
-colorSensor = ColorSensorV3()
+# colorSensor1 = ColorSensorV3(1)
 while True:
-    rawColor = colorSensor.getRawColor()
-    prox = colorSensor.getProximity()
-    print("{", \
-        rawColor.red, ",", \
-        rawColor.green, ",", \
-        rawColor.blue, ",", \
-        rawColor.ir, ",", \
-        prox, "}")
+    # rawColor0 = colorSensor.getRawColor()
+    # prox0 = colorSensor.getProximity()
+
+    # rawColor1 = colorSensor.getRawColor()
+    # prox1 = colorSensor.getProximity()
+
+    rawColor0 = RawColor(1026, 1850, 192, 45)
+    prox0 = 148
+
+    rawColor1 = RawColor(8852, 11111, 8741, 45)
+    prox1 = 1020
+
+    uart.write(str(rawColor0.red).encode('utf-8'))
+    uart.write(b',')
+    uart.write(str(rawColor0.green).encode('utf-8'))
+    uart.write(b',')
+    uart.write(str(rawColor0.blue).encode('utf-8'))
+    uart.write(b',')
+    uart.write(str(rawColor0.ir).encode('utf-8'))
+    uart.write(b',')
+    uart.write(str(prox0).encode('utf-8'))
+
+
+    uart.write(b',')
+    uart.write(str(rawColor1.red).encode('utf-8'))
+    uart.write(b',')
+    uart.write(str(rawColor1.green).encode('utf-8'))
+    uart.write(b',')
+    uart.write(str(rawColor1.blue).encode('utf-8'))
+    uart.write(b',')
+    uart.write(str(rawColor1.ir).encode('utf-8'))
+    uart.write(b',')
+    uart.write(str(prox1).encode('utf-8'))
+
+
+    uart.write(b'\n')
 
     utime.sleep_ms(100)
+
+
